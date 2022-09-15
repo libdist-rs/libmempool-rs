@@ -1,5 +1,5 @@
-mod sized;
 pub use sized::*;
-
-mod timed;
 pub use timed::*;
+
+mod sized;
+mod timed;

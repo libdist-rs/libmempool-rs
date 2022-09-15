@@ -1,12 +1,20 @@
-use std::{collections::HashMap, time::Duration, pin::Pin, task::{Context, Poll}, error::Error};
+use std::{
+    collections::HashMap,
+    error::Error,
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
 use futures::{Future, FutureExt};
 use tokio::time::Instant;
 
-use crate::{sealer::{TimedSealer, SizedSealer}, Sealer};
+use crate::{
+    sealer::{SizedSealer, TimedSealer},
+    Sealer,
+};
 
-struct HybridSealer<Tx>
-{
+struct HybridSealer<Tx> {
     timed_sealer: TimedSealer<usize>,
     sized_sealer: SizedSealer<usize>,
     map: HashMap<usize, Tx>,
@@ -14,9 +22,11 @@ struct HybridSealer<Tx>
 }
 
 impl<Tx> HybridSealer<Tx> {
-    fn new(timeout: Duration, tx_size: usize) -> Self 
-    { 
-        Self { 
+    fn new(
+        timeout: Duration,
+        tx_size: usize,
+    ) -> Self {
+        Self {
             timed_sealer: TimedSealer::new(timeout),
             sized_sealer: SizedSealer::new(tx_size),
             map: HashMap::new(),
@@ -24,16 +34,18 @@ impl<Tx> HybridSealer<Tx> {
         }
     }
 
-    fn update(&mut self, tx: Tx, tx_size: usize)
-    {
+    fn update(
+        &mut self,
+        tx: Tx,
+        tx_size: usize,
+    ) {
         self.map.insert(self.counter, tx);
         self.sized_sealer.update(self.counter, tx_size);
         self.timed_sealer.update(self.counter);
         self.counter += 1;
     }
 
-    fn reset(&mut self)
-    {
+    fn reset(&mut self) {
         self.timed_sealer.seal();
         self.sized_sealer.seal();
         self.map.clear();
@@ -41,8 +53,7 @@ impl<Tx> HybridSealer<Tx> {
     }
 }
 
-impl<Tx> Sealer<Tx> for HybridSealer<Tx>
-{
+impl<Tx> Sealer<Tx> for HybridSealer<Tx> {
     fn seal(&mut self) -> Vec<Tx> {
         panic!("Do not call .seal() for Hybrid Sealer\nUse .reset() and .await");
     }
@@ -50,11 +61,13 @@ impl<Tx> Sealer<Tx> for HybridSealer<Tx>
 
 impl<Tx> Unpin for HybridSealer<Tx> {}
 
-impl<Tx> Future for HybridSealer<Tx>
-{
+impl<Tx> Future for HybridSealer<Tx> {
     type Output = Vec<Tx>;
 
-    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+    fn poll(
+        mut self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Self::Output> {
         if let Poll::Ready(txs) = self.timed_sealer.poll_unpin(cx) {
             let mut out = Vec::new();
             for tx_id in txs {
@@ -83,8 +96,7 @@ const SEAL_TIME: Duration = Duration::from_millis(50);
 const SEAL_SIZE: usize = 6;
 
 #[tokio::test]
-async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>>
-{
+async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>> {
     let mut sealer = HybridSealer::<bool>::new(SEAL_TIME, SEAL_SIZE);
     let start = Instant::now();
     sealer.reset();
@@ -95,7 +107,7 @@ async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>>
     }
     let txs = (&mut sealer).await;
     let end = Instant::now();
-    assert!(txs == test_txs, "The output and the input do not match");
+    assert_eq!(txs, test_txs, "The output and the input do not match");
     assert!(end - start > SEAL_TIME, "Did not seal by timeout");
 
     // Next, check for the size case
@@ -105,8 +117,8 @@ async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>>
         sealer.update(*test_tx, 1);
     }
     let txs = (&mut sealer).await;
-    assert!(txs == test_txs, "The output and the input do not match");
-    assert!(txs.len() == SEAL_SIZE);
+    assert_eq!(txs, test_txs, "The output and the input do not match");
+    assert_eq!(txs.len(), SEAL_SIZE);
 
     Ok(())
 }

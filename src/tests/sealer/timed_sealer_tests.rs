@@ -1,12 +1,15 @@
-use std::{error::Error, time::{Duration, Instant}};
+use std::{
+    error::Error,
+    time::{Duration, Instant},
+};
+
 use crate::sealer::TimedSealer;
 
 const SEAL_TIME: Duration = Duration::from_millis(50);
 
 /// Test FIFO ordering and correct sealing
 #[tokio::test]
-async fn test_fifo() -> Result<(), Box<dyn Error>>
-{
+async fn test_fifo() -> Result<(), Box<dyn Error>> {
     let mut sealer = TimedSealer::<bool>::new(SEAL_TIME);
     let test_txs = vec![true, false, true, false, true, false];
     for test_tx in &test_txs {
@@ -16,14 +19,13 @@ async fn test_fifo() -> Result<(), Box<dyn Error>>
     let txs = sealer.await;
 
     // Check that the FIFO ordering is respected
-    assert!(test_txs == txs);
+    assert_eq!(test_txs, txs);
     Ok(())
 }
 
 /// Check whether the sealer wait for approximately the right amount of time
 #[tokio::test]
-async fn test_correct_timing() -> Result<(), Box<dyn Error>>
-{
+async fn test_correct_timing() -> Result<(), Box<dyn Error>> {
     let mut sealer = TimedSealer::<bool>::new(SEAL_TIME);
     let test_txs = vec![true, false, true, false, true, false];
     for test_tx in &test_txs {
@@ -40,8 +42,7 @@ async fn test_correct_timing() -> Result<(), Box<dyn Error>>
 
 /// Check whether after sealing the transactions are cleared correctly
 #[tokio::test]
-async fn test_multiple_seals() -> Result<(), Box<dyn Error>>
-{
+async fn test_multiple_seals() -> Result<(), Box<dyn Error>> {
     let mut sealer = TimedSealer::<bool>::new(SEAL_TIME);
     let test_txs = vec![true, false, true, false, true, false];
     let test_txs2 = vec![true, true, true, false, true, false];
@@ -51,20 +52,20 @@ async fn test_multiple_seals() -> Result<(), Box<dyn Error>>
     }
     sealer.reset_timer();
     let txs = (&mut sealer).await;
-    assert!(test_txs == txs);
+    assert_eq!(test_txs, txs);
 
     for test_tx in &test_txs2 {
         sealer.update(*test_tx);
     }
     sealer.reset_timer();
     let txs = (&mut sealer).await;
-    assert!(test_txs2 == txs);
+    assert_eq!(test_txs2, txs);
 
     for test_tx in &test_txs3 {
         sealer.update(*test_tx);
     }
     sealer.reset_timer();
     let txs = (&mut sealer).await;
-    assert!(test_txs3 == txs);
+    assert_eq!(test_txs3, txs);
     Ok(())
 }

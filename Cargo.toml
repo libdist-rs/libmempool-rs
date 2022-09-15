@@ -6,7 +6,21 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tokio = { version = "1", features = [ "time", "macros", "rt"] }
-
-[dev-dependencies]
+log = "0"
+libcrypto = { git = "https://github.com/libdist-rs/libcrypto-rs.git" }
+network = { git = "https://github.com/libdist-rs/libnet-rs.git" }
+libstorage = { package = "libstorage-rs", git = "https://github.com/libdist-rs/libstorage-rs.git" }
+serde = {version = "1", features = [ "derive" ] }
+bincode = "1"
+anyhow = "1"
 futures = "0"
+fnv = "1"
+
+[dependencies.tokio]
+version = "1"
+features = [
+    "rt",
+    "macros",
+    "time",
+    "sync",
+]
