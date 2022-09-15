@@ -10,13 +10,13 @@ use crate::{sealer::SizedSealer, Batcher, Config, Mempool, MempoolMsg};
 use super::{get_peers, Id, Round, Tx};
 
 const NUM_NODES: usize = 16;
-const MEMPOOL_BASE_PORT: u16 = 10_000;
 const CLIENT_BASE_PORT: u16 = 9_000;
+const MEMPOOL_BASE_PORT: u16 = 10_000;
 
 #[tokio::test]
 async fn test_mempool() -> anyhow::Result<()> {
-    let peers = get_peers(NUM_NODES, 10_000);
-    let all_ids: Vec<Id> = peers.keys().cloned().collect();
+    let mempool_peers = get_peers(NUM_NODES, MEMPOOL_BASE_PORT);
+    let all_ids: Vec<Id> = mempool_peers.keys().cloned().collect();
     let mut params = Config::<Round>::default();
     params.gc_depth = 2.into();
 
@@ -26,7 +26,7 @@ async fn test_mempool() -> anyhow::Result<()> {
         let my_name: Id = i.into();
         let store = Storage::new(format!(".mempool_tests-{}.db", i).as_str())?;
         let mempool_sender =
-            TcpSimpleSender::<Id, MempoolMsg<Id, Tx>, Acknowledgement>::with_peers(peers.clone());
+            TcpSimpleSender::<Id, MempoolMsg<Id, Tx>, Acknowledgement>::with_peers(mempool_peers.clone());
 
         let (_tx_consensus, rx_consensus) = unbounded_channel();
         let (tx_batcher, rx_batcher) = unbounded_channel();
