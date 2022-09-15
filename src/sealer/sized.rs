@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use crate::Sealer;
+use crate::{Sealer, Transaction};
 
 /// The SizedSealer notifies when the size of the transactions in the mempool
 /// exceeds a threshold size
@@ -22,8 +22,20 @@ impl<Tx> SizedSealer<Tx> {
             txs: Vec::new(),
         }
     }
+}
 
-    pub fn update(
+impl<Tx> Sealer<Tx> for SizedSealer<Tx>
+where
+    Tx: Transaction,
+{
+    /// Resets the sealer with current size as 0 and returns all the
+    /// transactions
+    fn seal(&mut self) -> Vec<Tx> {
+        self.current_size = 0;
+        std::mem::take(&mut self.txs)
+    }
+
+    fn update(
         &mut self,
         tx: Tx,
         tx_size: usize,
@@ -33,18 +45,12 @@ impl<Tx> SizedSealer<Tx> {
     }
 }
 
-impl<Tx> Sealer<Tx> for SizedSealer<Tx> {
-    /// Resets the sealer with current size as 0 and returns all the
-    /// transactions
-    fn seal(&mut self) -> Vec<Tx> {
-        self.current_size = 0;
-        std::mem::take(&mut self.txs)
-    }
-}
-
 impl<Tx> Unpin for SizedSealer<Tx> {}
 
-impl<Tx> Future for SizedSealer<Tx> {
+impl<Tx> Future for SizedSealer<Tx>
+where
+    Tx: Transaction,
+{
     type Output = Vec<Tx>;
 
     fn poll(

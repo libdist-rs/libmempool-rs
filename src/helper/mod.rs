@@ -10,8 +10,8 @@ pub struct Helper<Id, Storage, Tx>
 where
     Tx: Transaction,
 {
-    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Tx>, Acknowledgement>,
-    rx_request: UnboundedReceiver<(Vec<Hash>, Id)>,
+    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+    rx_request: UnboundedReceiver<(Id, Vec<Hash>)>,
     store: Storage,
 }
 
@@ -22,8 +22,8 @@ where
     Tx: Transaction,
 {
     pub fn spawn(
-        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Tx>, Acknowledgement>,
-        rx_request: UnboundedReceiver<(Vec<Hash>, Id)>,
+        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+        rx_request: UnboundedReceiver<(Id, Vec<Hash>)>,
         store: Storage,
     ) {
         tokio::spawn(async move {
@@ -38,7 +38,7 @@ where
     }
 
     async fn run(&mut self) {
-        while let Some((digests, source)) = self.rx_request.recv().await {
+        while let Some((source, digests)) = self.rx_request.recv().await {
             for digest in digests {
                 match self.store.read(digest.to_vec()).await {
                     Ok(Some(data)) => {

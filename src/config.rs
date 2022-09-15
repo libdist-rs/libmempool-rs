@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Config<Round> {
     /// The depth of the garbage collection (Denominated in number of rounds).
     pub gc_depth: Round,
@@ -12,8 +12,8 @@ pub struct Config<Round> {
     pub sync_retry_nodes: usize,
 }
 
-impl<Round> Config<Round> 
-where 
+impl<Round> Config<Round>
+where
     Round: crate::Round,
 {
     pub fn log(&self) {

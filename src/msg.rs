@@ -1,6 +1,6 @@
 use crate::Transaction;
 use libcrypto::hash::Hash;
-use network::Message;
+use network::{Message, Identifier};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -8,38 +8,29 @@ pub struct Batch<Tx> {
     payload: Vec<Tx>,
 }
 
-impl<Tx> Message for Batch<Tx>
-where
-    Tx: Transaction,
-{
-    fn from_bytes(data: &[u8]) -> Self {
-        bincode::deserialize(data).unwrap()
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(self).unwrap()
+impl<Tx> From<Vec<Tx>> for Batch<Tx> {
+    fn from(tx_batch: Vec<Tx>) -> Self {
+        Self { payload: tx_batch }
     }
 }
 
+impl<Tx> Message for Batch<Tx>
+where
+    Tx: Transaction,
+{}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum MempoolMsg<Tx> {
-    RequestBatch(Vec<Hash>),
+pub enum MempoolMsg<Id, Tx> {
+    RequestBatch(Id, Vec<Hash>),
     /// This is sent by the primary or by a helper
     Batch(Batch<Tx>),
 }
 
-impl<Tx> Message for MempoolMsg<Tx>
+impl<Id, Tx> Message for MempoolMsg<Id, Tx>
 where
     Tx: Transaction,
-{
-    fn from_bytes(data: &[u8]) -> Self {
-        bincode::deserialize(data).unwrap()
-    }
-
-    fn to_bytes(&self) -> Vec<u8> {
-        bincode::serialize(self).unwrap()
-    }
-}
+    Id: Identifier,
+{}
 
 pub enum ConsensusMempoolMsg<Id, Round> {
     End(Round),

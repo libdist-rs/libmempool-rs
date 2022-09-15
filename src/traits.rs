@@ -1,10 +1,9 @@
+use futures::Future;
+use network::Message;
 // use network::Message;
-use serde::{de::DeserializeOwned, Serialize};
+// use serde::{de::DeserializeOwned, Serialize};
 
-pub trait Transaction:
-    Clone + std::fmt::Debug + Send + Sync + Serialize + DeserializeOwned + 'static
-{
-}
+pub trait Transaction: Message {}
 
 pub trait Round:
     Send
@@ -19,6 +18,15 @@ pub trait Round:
 {
 }
 
-pub trait Sealer<Tx> {
+pub trait Sealer<Tx>: Send + Sync + 'static + Future<Output = Vec<Tx>> + Unpin {
+    /// Cleans the sealer and returns all transactions
     fn seal(&mut self) -> Vec<Tx>;
+
+    /// Updates the sealer with a new transaction
+    fn update(
+        &mut self,
+        _tx: Tx,
+        _tx_size: usize,
+    ) {
+    }
 }

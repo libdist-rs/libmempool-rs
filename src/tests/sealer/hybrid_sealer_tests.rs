@@ -1,3 +1,11 @@
+use crate::{
+    sealer::{SizedSealer, TimedSealer},
+    tests::common::transform,
+    Sealer, Transaction,
+};
+use futures::{Future, FutureExt};
+use network::Message;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     error::Error,
@@ -5,23 +13,25 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-
-use futures::{Future, FutureExt};
 use tokio::time::Instant;
 
-use crate::{
-    sealer::{SizedSealer, TimedSealer},
-    Sealer,
-};
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash, Eq, Copy)]
+pub struct Counter(usize);
+
+impl Message for Counter {}
+impl Transaction for Counter {}
 
 struct HybridSealer<Tx> {
-    timed_sealer: TimedSealer<usize>,
-    sized_sealer: SizedSealer<usize>,
-    map: HashMap<usize, Tx>,
-    counter: usize,
+    timed_sealer: TimedSealer<Counter>,
+    sized_sealer: SizedSealer<Counter>,
+    map: HashMap<Counter, Tx>,
+    counter: Counter,
 }
 
-impl<Tx> HybridSealer<Tx> {
+impl<Tx> HybridSealer<Tx>
+where
+    Tx: Transaction,
+{
     fn new(
         timeout: Duration,
         tx_size: usize,
@@ -30,8 +40,24 @@ impl<Tx> HybridSealer<Tx> {
             timed_sealer: TimedSealer::new(timeout),
             sized_sealer: SizedSealer::new(tx_size),
             map: HashMap::new(),
-            counter: 0,
+            counter: Counter { 0: 0 },
         }
+    }
+
+    fn reset(&mut self) {
+        self.timed_sealer.seal();
+        self.sized_sealer.seal();
+        self.map.clear();
+        self.counter.0 = 0;
+    }
+}
+
+impl<Tx> Sealer<Tx> for HybridSealer<Tx>
+where
+    Tx: Transaction,
+{
+    fn seal(&mut self) -> Vec<Tx> {
+        panic!("Do not call .seal() for Hybrid Sealer\nUse .reset() and .await");
     }
 
     fn update(
@@ -41,27 +67,17 @@ impl<Tx> HybridSealer<Tx> {
     ) {
         self.map.insert(self.counter, tx);
         self.sized_sealer.update(self.counter, tx_size);
-        self.timed_sealer.update(self.counter);
-        self.counter += 1;
-    }
-
-    fn reset(&mut self) {
-        self.timed_sealer.seal();
-        self.sized_sealer.seal();
-        self.map.clear();
-        self.counter = 0;
+        self.timed_sealer.update(self.counter, tx_size);
+        self.counter.0 += 1;
     }
 }
 
-impl<Tx> Sealer<Tx> for HybridSealer<Tx> {
-    fn seal(&mut self) -> Vec<Tx> {
-        panic!("Do not call .seal() for Hybrid Sealer\nUse .reset() and .await");
-    }
-}
+impl<Tx> Unpin for HybridSealer<Tx> where Tx: Transaction {}
 
-impl<Tx> Unpin for HybridSealer<Tx> {}
-
-impl<Tx> Future for HybridSealer<Tx> {
+impl<Tx> Future for HybridSealer<Tx>
+where
+    Tx: Transaction,
+{
     type Output = Vec<Tx>;
 
     fn poll(
@@ -97,13 +113,13 @@ const SEAL_SIZE: usize = 6;
 
 #[tokio::test]
 async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>> {
-    let mut sealer = HybridSealer::<bool>::new(SEAL_TIME, SEAL_SIZE);
+    let mut sealer = HybridSealer::<crate::tests::common::Tx>::new(SEAL_TIME, SEAL_SIZE);
     let start = Instant::now();
     sealer.reset();
-    let test_txs = vec![true, false, true, false, true];
+    let test_txs = transform(vec![true, false, true, false, true]);
     // First, check for the timeout case
     for test_tx in &test_txs {
-        sealer.update(*test_tx, 1);
+        sealer.update(test_tx.clone(), 1);
     }
     let txs = (&mut sealer).await;
     let end = Instant::now();
@@ -112,9 +128,9 @@ async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>> {
 
     // Next, check for the size case
     sealer.reset();
-    let test_txs = vec![true, false, true, false, true, false];
+    let test_txs = transform(vec![true, false, true, false, true, false]);
     for test_tx in &test_txs {
-        sealer.update(*test_tx, 1);
+        sealer.update(test_tx.clone(), 1);
     }
     let txs = (&mut sealer).await;
     assert_eq!(txs, test_txs, "The output and the input do not match");

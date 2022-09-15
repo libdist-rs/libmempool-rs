@@ -7,7 +7,7 @@ use std::{
 
 use tokio::time::{sleep, Instant, Sleep};
 
-use crate::Sealer;
+use crate::{Sealer, Transaction};
 
 pub struct TimedSealer<Tx> {
     timeout: Duration,
@@ -24,29 +24,36 @@ impl<Tx> TimedSealer<Tx> {
         }
     }
 
-    pub fn update(
-        &mut self,
-        tx: Tx,
-    ) {
-        self.txs.push(tx);
-    }
-
     pub fn reset_timer(&mut self) {
         self.timer.as_mut().reset(Instant::now() + self.timeout);
     }
 }
 
-impl<Tx> Sealer<Tx> for TimedSealer<Tx> {
+impl<Tx> Sealer<Tx> for TimedSealer<Tx>
+where
+    Tx: Transaction,
+{
     /// Resets the timer and returns all the transactions
     fn seal(&mut self) -> Vec<Tx> {
         self.reset_timer();
         std::mem::take(&mut self.txs)
     }
+
+    fn update(
+        &mut self,
+        tx: Tx,
+        _tx_size: usize,
+    ) {
+        self.txs.push(tx);
+    }
 }
 
 impl<Tx> Unpin for TimedSealer<Tx> {}
 
-impl<Tx> Future for TimedSealer<Tx> {
+impl<Tx> Future for TimedSealer<Tx>
+where
+    Tx: Transaction,
+{
     type Output = Vec<Tx>;
 
     fn poll(

@@ -1,5 +1,10 @@
-use crate::sealer::SizedSealer;
 use futures::FutureExt;
+
+use crate::{
+    sealer::SizedSealer,
+    tests::common::{transform, Tx},
+    Sealer,
+};
 use std::error::Error;
 
 const SEAL_SIZE: usize = 6;
@@ -7,8 +12,8 @@ const SEAL_SIZE: usize = 6;
 /// Test FIFO ordering and correct sealing
 #[tokio::test]
 async fn test_fifo() -> Result<(), Box<dyn Error>> {
-    let mut sealer = SizedSealer::<bool>::new(SEAL_SIZE);
-    let test_txs = vec![true, false, true, false, true, false];
+    let mut sealer = SizedSealer::<Tx>::new(SEAL_SIZE);
+    let test_txs = transform(vec![true, false, true, false, true, false]);
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }
@@ -22,8 +27,8 @@ async fn test_fifo() -> Result<(), Box<dyn Error>> {
 /// Check whether the sealer returns when less transactions are present
 #[tokio::test]
 async fn test_correct_size() -> Result<(), Box<dyn Error>> {
-    let mut sealer = SizedSealer::<bool>::new(SEAL_SIZE);
-    let test_txs = vec![true, false, true, false, true, false];
+    let mut sealer = SizedSealer::<Tx>::new(SEAL_SIZE);
+    let test_txs = transform(vec![true, false, true, false, true, false]);
     let res = (&mut sealer).now_or_never();
 
     assert!(res.is_none(), "Sealer should not be ready when empty");
@@ -43,10 +48,10 @@ async fn test_correct_size() -> Result<(), Box<dyn Error>> {
 /// Check whether after sealing the transactions are cleared correctly
 #[tokio::test]
 async fn test_multiple_seals() -> Result<(), Box<dyn Error>> {
-    let mut sealer = SizedSealer::<bool>::new(SEAL_SIZE);
-    let test_txs = vec![true, false, true, false, true, false];
-    let test_txs2 = vec![true, true, true, false, true, false];
-    let test_txs3 = vec![true, false, false, false, true, false];
+    let mut sealer = SizedSealer::<Tx>::new(SEAL_SIZE);
+    let test_txs = transform(vec![true, false, true, false, true, false]);
+    let test_txs2 = transform(vec![true, true, true, false, true, false]);
+    let test_txs3 = transform(vec![true, false, false, false, true, false]);
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }

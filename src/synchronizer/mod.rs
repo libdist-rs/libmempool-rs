@@ -15,6 +15,9 @@ mod waiter;
 
 #[derive(Debug)]
 pub struct Synchronizer<Id, Round, Tx, Storage> {
+    /// Id of this node
+    my_name: Id,
+
     /// This is the channel used to get messages from the consensus layer
     rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round>>,
 
@@ -31,7 +34,7 @@ pub struct Synchronizer<Id, Round, Tx, Storage> {
     pending: FnvHashMap<Hash, (Round, UnboundedSender<()>, Instant)>,
 
     /// Used to send sync messages to the network
-    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Tx>, Acknowledgement>,
+    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
 
     /// Storage to clean
     storage: Storage,
@@ -58,23 +61,25 @@ where
     Storage: libstorage::Store,
 {
     pub fn spawn(
+        my_name: Id,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round>>,
         gc_depth: Round,
-        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Tx>, Acknowledgement>,
+        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
         storage: Storage,
-        wait_time_in_ms: u64,
+        wait_time: Duration,
         all_ids: Vec<Id>,
         sync_retry_nodes: usize,
     ) {
         tokio::spawn(async move {
             Self {
+                my_name,
                 rx_consensus,
                 gc_depth,
                 latest_gc_round: Round::default(),
                 pending: FnvHashMap::default(),
                 mempool_sender,
                 storage,
-                wait_time: Duration::from_millis(wait_time_in_ms),
+                wait_time,
                 round: Round::default(),
                 all_ids,
                 sync_retry_nodes,
@@ -116,7 +121,7 @@ where
 
                         // Send sync request to a single node. If this fails, we will send it
                         // to other nodes when a timer times out.
-                        let message = MempoolMsg::<Tx>::RequestBatch(missing);
+                        let message = MempoolMsg::<Id, Tx>::RequestBatch(self.my_name.clone(), missing);
                         self.mempool_sender.send(source, message).await;
                     }
 
@@ -167,7 +172,7 @@ where
                         }
                     }
                     if !retry.is_empty() {
-                        let message = MempoolMsg::<Tx>::RequestBatch(retry);
+                        let message = MempoolMsg::<Id, Tx>::RequestBatch(self.my_name.clone(), retry);
                         self.mempool_sender
                             .randcast(message, self.all_ids.clone(), self.sync_retry_nodes)
                             .await;
