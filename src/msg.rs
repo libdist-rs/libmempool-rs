@@ -1,6 +1,6 @@
 use crate::Transaction;
 use libcrypto::hash::Hash;
-use network::{Message, Identifier};
+use network::{Identifier, Message};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -14,10 +14,7 @@ impl<Tx> From<Vec<Tx>> for Batch<Tx> {
     }
 }
 
-impl<Tx> Message for Batch<Tx>
-where
-    Tx: Transaction,
-{}
+impl<Tx> Message for Batch<Tx> where Tx: Transaction {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MempoolMsg<Id, Tx> {
@@ -30,7 +27,8 @@ impl<Id, Tx> Message for MempoolMsg<Id, Tx>
 where
     Tx: Transaction,
     Id: Identifier,
-{}
+{
+}
 
 pub enum ConsensusMempoolMsg<Id, Round> {
     End(Round),

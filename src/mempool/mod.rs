@@ -1,18 +1,18 @@
 use std::net::SocketAddr;
 
 use crate::{
-    Batch, Config, ConsensusMempoolMsg, MempoolMsg, Processor, Synchronizer, Transaction,
-    TxReceiveHandler, MempoolHandler, Helper,
+    Batch, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
+    Synchronizer, Transaction, TxReceiveHandler,
 };
 use libcrypto::hash::Hash;
 use network::{
     plaintcp::{TcpReceiver, TcpSimpleSender},
     Acknowledgement, Identifier,
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct Mempool<Id, Round, Storage, Tx> {
-    my_name: Id, 
+    my_name: Id,
     all_ids: Vec<Id>,
     params: Config<Round>,
     store: Storage,
@@ -31,14 +31,14 @@ where
     Tx: Transaction,
 {
     pub fn spawn(
-        my_name: Id, 
+        my_name: Id,
         all_ids: Vec<Id>,
         params: Config<Round>,
         store: Storage,
         mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round>>,
         // Output to batcher that we have a client tx
-        tx_batcher: UnboundedSender<(Tx, /*Size of the tx*/usize)>,
+        tx_batcher: UnboundedSender<(Tx, /* Size of the tx */ usize)>,
         // The consensus creates this so it can forward it to the batcher
         tx_processor: UnboundedSender<Batch<Tx>>,
         // The consensus will let us know once a batch is ready to be proposed
@@ -63,7 +63,7 @@ where
 
         mempool.handle_client_messages(
             tx_batcher,   // Output client tx [to batcher]
-            rx_processor,     // Input ready batches [from batcher] to the processor
+            rx_processor, // Input ready batches [from batcher] to the processor
             tx_consensus, // Output batch hash [to consensus]
         );
 
@@ -107,23 +107,26 @@ where
         // Start the processor
         Processor::spawn(
             self.store.clone(),
-            rx_processor,     // From the batcher
+            rx_processor, // From the batcher
             tx_consensus, // Output to
         );
     }
 
-    fn handle_mempool_messages(&mut self, tx_processor: UnboundedSender<Batch<Tx>>) {
+    fn handle_mempool_messages(
+        &mut self,
+        tx_processor: UnboundedSender<Batch<Tx>>,
+    ) {
         let (tx_helper, rx_helper) = unbounded_channel();
 
         Helper::<Id, Storage, Tx>::spawn(
             TcpSimpleSender::with_peers(self.mempool_sender.get_peers()),
-            rx_helper, 
-            self.store.clone()
+            rx_helper,
+            self.store.clone(),
         );
 
         TcpReceiver::spawn(
-            self.mempool_addr, 
-            MempoolHandler::new(tx_helper, tx_processor)
+            self.mempool_addr,
+            MempoolHandler::new(tx_helper, tx_processor),
         );
     }
 }

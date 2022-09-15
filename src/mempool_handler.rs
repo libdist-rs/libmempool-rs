@@ -6,7 +6,7 @@ use libcrypto::hash::Hash;
 use network::{Acknowledgement, Handler, Identifier};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{Batch, Transaction, MempoolMsg};
+use crate::{Batch, MempoolMsg, Transaction};
 
 #[derive(Debug, Clone)]
 pub struct MempoolHandler<Id, Tx> {
@@ -16,16 +16,20 @@ pub struct MempoolHandler<Id, Tx> {
 }
 
 #[async_trait]
-impl<Id, Tx> Handler<Acknowledgement, MempoolMsg<Id, Tx>> for MempoolHandler<Id, Tx> 
+impl<Id, Tx> Handler<Acknowledgement, MempoolMsg<Id, Tx>> for MempoolHandler<Id, Tx>
 where
     Tx: Transaction,
     Id: Identifier,
 {
-    async fn dispatch(&self, msg: MempoolMsg<Id, Tx>, writer: &mut network::Writer<Acknowledgement>) {
+    async fn dispatch(
+        &self,
+        msg: MempoolMsg<Id, Tx>,
+        writer: &mut network::Writer<Acknowledgement>,
+    ) {
         match msg {
             MempoolMsg::Batch(batch) => {
                 let _ = self.tx_processor.send(batch);
-            },
+            }
             MempoolMsg::RequestBatch(source, hashes) => {
                 let _ = self.tx_helper.send((source, hashes));
             }

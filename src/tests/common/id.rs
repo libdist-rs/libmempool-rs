@@ -1,8 +1,8 @@
 use network::{Identifier, Message};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Hash, PartialEq, PartialOrd, Eq, Serialize, Deserialize, Clone)]
-pub struct Id (usize);
+pub struct Id(usize);
 
 impl Message for Id {}
 impl Identifier for Id {}
