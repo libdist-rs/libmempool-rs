@@ -11,4 +11,4 @@ Cargo.lock
 
 # Added by cargo
 .idea/
-.mempool_tests-*
+.mempool_tests*

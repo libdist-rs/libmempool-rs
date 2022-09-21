@@ -9,7 +9,8 @@ edition = "2021"
 log = "0"
 libcrypto = { git = "https://github.com/libdist-rs/libcrypto-rs.git" }
 network = { git = "https://github.com/libdist-rs/libnet-rs.git" }
-libstorage = { package = "libstorage-rs", git = "https://github.com/libdist-rs/libstorage-rs.git" }
+# libstorage = { package = "libstorage-rs", git = "https://github.com/libdist-rs/libstorage-rs.git" }
+libstorage = { package = "libstorage-rs", path = "../libstorage-rs" }
 serde = {version = "1", features = [ "derive" ] }
 bincode = "1"
 anyhow = "1"
@@ -25,3 +26,6 @@ features = [
     "time",
     "sync",
 ]
+
+[dev-dependencies]
+rocksdb = "0"
