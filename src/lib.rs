@@ -1,16 +1,16 @@
-mod batcher;
+pub mod batcher;
 mod config;
 mod helper;
 mod mempool;
 mod mempool_handler;
 mod msg;
 mod processor;
+pub mod quorum_waiter;
 pub mod sealer;
 mod synchronizer;
 mod traits;
 mod tx_handler;
 
-pub use batcher::*;
 pub use config::*;
 pub use helper::*;
 pub use mempool::*;

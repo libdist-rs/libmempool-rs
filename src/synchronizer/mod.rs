@@ -75,12 +75,12 @@ where
                 my_name,
                 rx_consensus,
                 gc_depth,
-                latest_gc_round: Round::default(),
+                latest_gc_round: Round::MIN,
                 pending: FnvHashMap::default(),
                 mempool_sender,
                 storage,
                 wait_time,
-                round: Round::default(),
+                round: Round::MIN,
                 all_ids,
                 sync_retry_nodes,
             }
@@ -133,13 +133,13 @@ where
                             continue;
                         }
 
-                        let mut gc_round = round - self.gc_depth;
+                        self.latest_gc_round = round - self.gc_depth;
                         for (r, handler, _) in self.pending.values() {
-                            if r < &gc_round {
+                            if r < &self.latest_gc_round {
                                 let _ = handler.send(());
                             }
                         }
-                        self.pending.retain(|_, (r, _, _)| r > &mut gc_round);
+                        self.pending.retain(|_, (r, _, _)| r > &mut self.latest_gc_round);
                     }
                 },
 

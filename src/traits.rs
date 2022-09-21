@@ -16,6 +16,7 @@ pub trait Round:
     + Copy
     + core::fmt::Display
 {
+    const MIN: Self;
 }
 
 pub trait Sealer<Tx>: Send + Sync + 'static + Future<Output = Vec<Tx>> + Unpin {

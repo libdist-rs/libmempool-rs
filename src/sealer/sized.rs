@@ -1,20 +1,19 @@
+use crate::{Sealer, Transaction};
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use crate::{Sealer, Transaction};
-
 /// The SizedSealer notifies when the size of the transactions in the mempool
 /// exceeds a threshold size
-pub struct SizedSealer<Tx> {
+pub struct Sized<Tx> {
     max_size: usize,
     current_size: usize,
     txs: Vec<Tx>,
 }
 
-impl<Tx> SizedSealer<Tx> {
+impl<Tx> Sized<Tx> {
     pub fn new(max_size: usize) -> Self {
         Self {
             max_size,
@@ -24,7 +23,7 @@ impl<Tx> SizedSealer<Tx> {
     }
 }
 
-impl<Tx> Sealer<Tx> for SizedSealer<Tx>
+impl<Tx> Sealer<Tx> for Sized<Tx>
 where
     Tx: Transaction,
 {
@@ -45,9 +44,9 @@ where
     }
 }
 
-impl<Tx> Unpin for SizedSealer<Tx> {}
+impl<Tx> Unpin for Sized<Tx> {}
 
-impl<Tx> Future for SizedSealer<Tx>
+impl<Tx> Future for Sized<Tx>
 where
     Tx: Transaction,
 {

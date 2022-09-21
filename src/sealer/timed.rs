@@ -1,21 +1,19 @@
+use crate::{Sealer, Transaction};
 use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
 };
-
 use tokio::time::{sleep, Instant, Sleep};
 
-use crate::{Sealer, Transaction};
-
-pub struct TimedSealer<Tx> {
+pub struct Timed<Tx> {
     timeout: Duration,
     timer: Pin<Box<Sleep>>,
     txs: Vec<Tx>,
 }
 
-impl<Tx> TimedSealer<Tx> {
+impl<Tx> Timed<Tx> {
     pub fn new(timeout: Duration) -> Self {
         Self {
             timeout,
@@ -29,7 +27,7 @@ impl<Tx> TimedSealer<Tx> {
     }
 }
 
-impl<Tx> Sealer<Tx> for TimedSealer<Tx>
+impl<Tx> Sealer<Tx> for Timed<Tx>
 where
     Tx: Transaction,
 {
@@ -48,9 +46,9 @@ where
     }
 }
 
-impl<Tx> Unpin for TimedSealer<Tx> {}
+impl<Tx> Unpin for Timed<Tx> {}
 
-impl<Tx> Future for TimedSealer<Tx>
+impl<Tx> Future for Timed<Tx>
 where
     Tx: Transaction,
 {

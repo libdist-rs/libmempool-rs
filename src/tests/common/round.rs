@@ -34,4 +34,6 @@ impl From<usize> for Round {
 }
 
 impl Message for Round {}
-impl crate::Round for Round {}
+impl crate::Round for Round {
+    const MIN: Self = Self { 0: 0 };
+}

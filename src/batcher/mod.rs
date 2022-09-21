@@ -1,6 +1,5 @@
-use std::pin::Pin;
-
 use crate::{Batch, Transaction};
+use std::pin::Pin;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 /// The Batcher will collect transactions and make batches from them

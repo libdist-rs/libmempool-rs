@@ -1,5 +1,5 @@
 use crate::{
-    sealer::{SizedSealer, TimedSealer},
+    sealer::{Sized, Timed},
     tests::common::transform,
     Sealer, Transaction,
 };
@@ -22,8 +22,8 @@ impl Message for Counter {}
 impl Transaction for Counter {}
 
 struct HybridSealer<Tx> {
-    timed_sealer: TimedSealer<Counter>,
-    sized_sealer: SizedSealer<Counter>,
+    timed_sealer: Timed<Counter>,
+    sized_sealer: Sized<Counter>,
     map: HashMap<Counter, Tx>,
     counter: Counter,
 }
@@ -37,8 +37,8 @@ where
         tx_size: usize,
     ) -> Self {
         Self {
-            timed_sealer: TimedSealer::new(timeout),
-            sized_sealer: SizedSealer::new(tx_size),
+            timed_sealer: Timed::new(timeout),
+            sized_sealer: Sized::new(tx_size),
             map: HashMap::new(),
             counter: Counter { 0: 0 },
         }

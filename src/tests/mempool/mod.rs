@@ -1,5 +1,6 @@
 use super::{get_peers, Id, Round, Tx};
-use crate::{sealer::SizedSealer, Batcher, Config, Mempool, MempoolMsg};
+use crate::{sealer::Sized, Config, Mempool, MempoolMsg};
+use crate::batcher::Batcher;
 use libcrypto::hash::Hash;
 use libstorage::rocksdb::Storage;
 use network::{plaintcp::TcpSimpleSender, Acknowledgement, NetSender};
@@ -63,7 +64,7 @@ async fn do_test_mempool(
         let (tx_processor, rx_processor) = unbounded_channel();
         let (tx_in_consensus, rx_in_consensus) = unbounded_channel();
 
-        Batcher::spawn(rx_batcher, tx_processor.clone(), SizedSealer::new(2));
+        Batcher::spawn(rx_batcher, tx_processor.clone(), Sized::new(2));
 
         let (my_mempool_addr, my_client_addr) = {
             let mut mempool_addr = mempool_peers[&my_name].clone();

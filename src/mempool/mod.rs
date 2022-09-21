@@ -1,5 +1,3 @@
-use std::net::SocketAddr;
-
 use crate::{
     Batch, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
     Synchronizer, Transaction, TxReceiveHandler,
@@ -9,13 +7,19 @@ use network::{
     plaintcp::{TcpReceiver, TcpSimpleSender},
     Acknowledgement, Identifier,
 };
+use std::net::SocketAddr;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct Mempool<Id, Round, Storage, Tx> {
+    /// The Id of this server
     my_name: Id,
+    /// The Ids of all the servers
     all_ids: Vec<Id>,
+    /// The parameters for the mempool
     params: Config<Round>,
+    /// The DB implementation to handle new transactions
     store: Storage,
+    /// The networking object to send mempool messages to other mempools
     mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
     /// Address where this mempool should listen to requests from other mempools
     mempool_addr: SocketAddr,
