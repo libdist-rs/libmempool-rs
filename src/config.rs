@@ -1,6 +1,8 @@
 use std::time::Duration;
 
-#[derive(Debug, Clone)]
+use serde::{Serialize, Deserialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Config<Round> {
     /// The depth of the garbage collection (Denominated in number of rounds).
     pub gc_depth: Round,
