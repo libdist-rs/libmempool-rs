@@ -1,7 +1,5 @@
 use futures::Future;
 use network::Message;
-// use network::Message;
-// use serde::{de::DeserializeOwned, Serialize};
 
 pub trait Transaction: Message {}
 

@@ -1,9 +1,10 @@
-use crate::{Batch, Transaction, BatchHash};
+use crate::{Batch, BatchHash, Transaction};
 use libcrypto::hash::Hash;
 use std::marker::PhantomData;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
-/// This data structure will take batches and add them to the database and forward the hash for consumption signalling that the batch is ready for use
+/// This data structure will take batches and add them to the database and
+/// forward the hash for consumption signalling that the batch is ready for use
 pub struct Processor<Storage, Tx> {
     _x: PhantomData<(Storage, Tx)>,
 }

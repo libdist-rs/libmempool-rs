@@ -1,9 +1,9 @@
-use std::marker::PhantomData;
+use crate::{Batch, BatchHash, MempoolMsg, Transaction};
 use async_trait::async_trait;
 use futures::SinkExt;
 use network::{Acknowledgement, Handler, Identifier};
+use std::marker::PhantomData;
 use tokio::sync::mpsc::UnboundedSender;
-use crate::{Batch, MempoolMsg, Transaction, BatchHash};
 
 #[derive(Debug, Clone)]
 pub struct MempoolHandler<Id, Tx> {

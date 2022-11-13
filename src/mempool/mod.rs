@@ -1,6 +1,6 @@
 use crate::{
-    Batch, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
-    Synchronizer, Transaction, TxReceiveHandler, BatchHash,
+    Batch, BatchHash, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
+    Synchronizer, Transaction, TxReceiveHandler,
 };
 use libcrypto::hash::Hash;
 use network::{
@@ -41,15 +41,18 @@ where
         store: Storage,
         mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,
-        // This channel is used to output the obtained transactions along with its size to whoever is managing the batching process
+        // This channel is used to output the obtained transactions along with its size to whoever
+        // is managing the batching process
         tx_batcher: UnboundedSender<(Tx, /* Size of the tx */ usize)>,
-        // This channel is used to output the batches obtained as responses to batching requests for database processing
+        // This channel is used to output the batches obtained as responses to batching requests
+        // for database processing
         tx_processor: UnboundedSender<Batch<Tx>>,
         // This is used to obtain batches that are ready to be processed
         // E.g., the consensus will let us know once a batch is ready to be proposed
         // We will typically forward this to the tx_processor
         rx_processor: UnboundedReceiver<Batch<Tx>>,
-        // This channel is used to notify that a batch is processed and ready for consumption (by consensus for e.g.).
+        // This channel is used to notify that a batch is processed and ready for consumption (by
+        // consensus for e.g.).
         tx_consensus: UnboundedSender<BatchHash<Tx>>,
         mempool_addr: SocketAddr,
         client_addr: SocketAddr,

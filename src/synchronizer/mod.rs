@@ -1,9 +1,9 @@
-use std::time::Duration;
-use crate::{ConsensusMempoolMsg, MempoolMsg, Transaction, Batch, BatchHash};
+use crate::{Batch, BatchHash, ConsensusMempoolMsg, MempoolMsg, Transaction};
 use fnv::FnvHashMap;
 use futures::{stream::FuturesUnordered, StreamExt};
 use libcrypto::hash::Hash;
 use network::{plaintcp::TcpSimpleSender, Acknowledgement, Identifier, NetSender};
+use std::time::Duration;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{sleep, Instant},

@@ -30,7 +30,8 @@ impl<Id, Tx> Message for MempoolMsg<Id, Tx>
 where
     Tx: Transaction,
     Id: Identifier,
-{ }
+{
+}
 
 pub enum ConsensusMempoolMsg<Id, Round, Tx> {
     End(Round),

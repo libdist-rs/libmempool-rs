@@ -1,6 +1,6 @@
+use crate::{Batch, BatchHash, MempoolMsg, Transaction};
 use network::{plaintcp::TcpSimpleSender, Acknowledgement, Identifier, Message, NetSender};
 use tokio::sync::mpsc::UnboundedReceiver;
-use crate::{Batch, MempoolMsg, Transaction, BatchHash};
 
 /// The responsibility of this struct is to help other mempools by responding to
 /// their sync requests

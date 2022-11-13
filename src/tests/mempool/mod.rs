@@ -1,6 +1,6 @@
 use super::{get_peers, Id, Round, Tx};
-use crate::Batch;
 use crate::batcher::Batcher;
+use crate::Batch;
 use crate::{sealer::Sized, Config, Mempool, MempoolMsg};
 use libcrypto::hash::Hash;
 use libstorage::rocksdb::Storage;

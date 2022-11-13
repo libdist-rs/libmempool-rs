@@ -47,7 +47,7 @@ where
             if val.len() == self.num_of_ids_to_wait_for {
                 self.notify.send((msg, val.clone()))?;
             }
-        };
+        }
         log::info!("Quorum waiter is shutting down");
         Ok(())
     }
