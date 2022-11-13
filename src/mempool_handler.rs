@@ -1,16 +1,13 @@
 use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use futures::SinkExt;
-use libcrypto::hash::Hash;
 use network::{Acknowledgement, Handler, Identifier};
 use tokio::sync::mpsc::UnboundedSender;
-
-use crate::{Batch, MempoolMsg, Transaction};
+use crate::{Batch, MempoolMsg, Transaction, BatchHash};
 
 #[derive(Debug, Clone)]
 pub struct MempoolHandler<Id, Tx> {
-    tx_helper: UnboundedSender<(Id, Vec<Hash>)>,
+    tx_helper: UnboundedSender<(Id, Vec<BatchHash<Tx>>)>,
     tx_processor: UnboundedSender<Batch<Tx>>,
     _x: PhantomData<Id>,
 }
@@ -40,7 +37,7 @@ where
 
 impl<Id, Tx> MempoolHandler<Id, Tx> {
     pub fn new(
-        tx_helper: UnboundedSender<(Id, Vec<Hash>)>,
+        tx_helper: UnboundedSender<(Id, Vec<BatchHash<Tx>>)>,
         tx_processor: UnboundedSender<Batch<Tx>>,
     ) -> Self {
         Self {

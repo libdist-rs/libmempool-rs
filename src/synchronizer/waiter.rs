@@ -3,9 +3,9 @@ use libcrypto::hash::Hash;
 use tokio::sync::mpsc::UnboundedReceiver;
 
 /// This struct waits for a key to be available in a Store
-pub async fn wait<Storage>(
+pub async fn wait<Storage, T>(
     mut store: Storage,
-    key: Hash,
+    key: Hash<T>,
     mut cancel_handler: UnboundedReceiver<()>,
 ) -> Result<Option<Vec<u8>>>
 where

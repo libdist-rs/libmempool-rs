@@ -1,8 +1,6 @@
-use libcrypto::hash::Hash;
 use network::{plaintcp::TcpSimpleSender, Acknowledgement, Identifier, Message, NetSender};
 use tokio::sync::mpsc::UnboundedReceiver;
-
-use crate::{Batch, MempoolMsg, Transaction};
+use crate::{Batch, MempoolMsg, Transaction, BatchHash};
 
 /// The responsibility of this struct is to help other mempools by responding to
 /// their sync requests
@@ -11,7 +9,7 @@ where
     Tx: Transaction,
 {
     mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
-    rx_request: UnboundedReceiver<(Id, Vec<Hash>)>,
+    rx_request: UnboundedReceiver<(Id, Vec<BatchHash<Tx>>)>,
     store: Storage,
 }
 
@@ -23,7 +21,7 @@ where
 {
     pub fn spawn(
         mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
-        rx_request: UnboundedReceiver<(Id, Vec<Hash>)>,
+        rx_request: UnboundedReceiver<(Id, Vec<BatchHash<Tx>>)>,
         store: Storage,
     ) {
         tokio::spawn(async move {
@@ -46,7 +44,7 @@ where
                         let msg = MempoolMsg::Batch(b);
                         self.mempool_sender.send(source.clone(), msg).await;
                     }
-                    Ok(None) => (),
+                    Ok(None) => log::debug!("Digest: {} not found", digest),
                     Err(e) => log::warn!("Store Error: {}", e),
                 }
             }

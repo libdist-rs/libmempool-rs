@@ -1,6 +1,6 @@
 use crate::{
     Batch, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
-    Synchronizer, Transaction, TxReceiveHandler,
+    Synchronizer, Transaction, TxReceiveHandler, BatchHash,
 };
 use libcrypto::hash::Hash;
 use network::{
@@ -40,15 +40,17 @@ where
         params: Config<Round>,
         store: Storage,
         mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
-        rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round>>,
-        // Output to batcher that we have a client tx
+        rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,
+        // This channel is used to output the obtained transactions along with its size to whoever is managing the batching process
         tx_batcher: UnboundedSender<(Tx, /* Size of the tx */ usize)>,
-        // The consensus creates this so it can forward it to the batcher
+        // This channel is used to output the batches obtained as responses to batching requests for database processing
         tx_processor: UnboundedSender<Batch<Tx>>,
-        // The consensus will let us know once a batch is ready to be proposed
+        // This is used to obtain batches that are ready to be processed
+        // E.g., the consensus will let us know once a batch is ready to be proposed
+        // We will typically forward this to the tx_processor
         rx_processor: UnboundedReceiver<Batch<Tx>>,
-        // The consensus will respond to processed batches
-        tx_consensus: UnboundedSender<Hash>,
+        // This channel is used to notify that a batch is processed and ready for consumption (by consensus for e.g.).
+        tx_consensus: UnboundedSender<BatchHash<Tx>>,
         mempool_addr: SocketAddr,
         client_addr: SocketAddr,
     ) {
@@ -79,7 +81,7 @@ where
     /// Spawn all tasks responsible to handle messages from the consensus.
     fn handle_consensus_messages(
         self,
-        rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round>>,
+        rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,
     ) {
         Synchronizer::spawn(
             self.my_name,
@@ -100,7 +102,7 @@ where
         tx_batcher: UnboundedSender<(Tx, usize)>,
         // Receive batches and process them
         rx_processor: UnboundedReceiver<Batch<Tx>>,
-        tx_consensus: UnboundedSender<Hash>,
+        tx_consensus: UnboundedSender<Hash<Batch<Tx>>>,
     ) {
         // Handle transactions sent by the client
         TcpReceiver::spawn(self.client_addr, TxReceiveHandler::new(tx_batcher));

@@ -3,7 +3,10 @@ use libcrypto::hash::Hash;
 use network::{Identifier, Message};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+/// A short-hand to represent Hash<Batch<Tx>>
+pub type BatchHash<Tx> = Hash<Batch<Tx>>;
+
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Batch<Tx> {
     payload: Vec<Tx>,
 }
@@ -18,7 +21,7 @@ impl<Tx> Message for Batch<Tx> where Tx: Transaction {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MempoolMsg<Id, Tx> {
-    RequestBatch(Id, Vec<Hash>),
+    RequestBatch(Id, Vec<BatchHash<Tx>>),
     /// This is sent by the primary or by a helper
     Batch(Batch<Tx>),
 }
@@ -27,10 +30,9 @@ impl<Id, Tx> Message for MempoolMsg<Id, Tx>
 where
     Tx: Transaction,
     Id: Identifier,
-{
-}
+{ }
 
-pub enum ConsensusMempoolMsg<Id, Round> {
+pub enum ConsensusMempoolMsg<Id, Round, Tx> {
     End(Round),
-    UnknownBatch(Id, Vec<Hash>),
+    UnknownBatch(Id, Vec<BatchHash<Tx>>),
 }

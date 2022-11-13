@@ -1,4 +1,5 @@
 use super::{get_peers, Id, Round, Tx};
+use crate::Batch;
 use crate::batcher::Batcher;
 use crate::{sealer::Sized, Config, Mempool, MempoolMsg};
 use libcrypto::hash::Hash;
@@ -48,7 +49,7 @@ async fn do_test_mempool(
         p
     };
 
-    let mut receivers = Vec::<UnboundedReceiver<Hash>>::new();
+    let mut receivers = Vec::<UnboundedReceiver<Hash<Batch<Tx>>>>::new();
 
     for i in 0..num_nodes {
         let my_name: Id = i.into();
