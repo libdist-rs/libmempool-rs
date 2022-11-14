@@ -8,7 +8,7 @@ pub type BatchHash<Tx> = Hash<Batch<Tx>>;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Batch<Tx> {
-    payload: Vec<Tx>,
+    pub payload: Vec<Tx>,
 }
 
 impl<Tx> From<Vec<Tx>> for Batch<Tx> {
