@@ -1,17 +1,15 @@
-use std::{time::Duration, pin::Pin, task::{Context, Poll}};
+use std::{
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
-use futures::{Future, FutureExt};
-use network::Message;
-use serde::{Serialize, Deserialize};
-use crate::{Transaction, Sealer};
-use super::{Timed, Sized};
+use super::{Sized, Timed};
+use crate::{Sealer, Transaction};
 use fnv::FnvHashMap as HashMap;
+use futures::{Future, FutureExt};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Hash, Eq, Copy)]
-pub struct Counter(usize);
-
-impl Message for Counter {}
-impl Transaction for Counter {}
+pub type Counter = usize;
 
 pub struct HybridSealer<Tx> {
     timed_sealer: Timed<Counter>,
@@ -32,7 +30,7 @@ where
             timed_sealer: Timed::new(timeout),
             sized_sealer: Sized::new(tx_size),
             map: HashMap::default(),
-            counter: Counter { 0: 0 },
+            counter: 0,
         }
     }
 
@@ -40,7 +38,7 @@ where
         self.timed_sealer.seal();
         self.sized_sealer.seal();
         self.map.clear();
-        self.counter.0 = 0;
+        self.counter = 0;
     }
 }
 
@@ -60,7 +58,7 @@ where
         self.map.insert(self.counter, tx);
         self.sized_sealer.update(self.counter, tx_size);
         self.timed_sealer.update(self.counter, tx_size);
-        self.counter.0 += 1;
+        self.counter += 1;
     }
 }
 
@@ -99,4 +97,3 @@ where
         Poll::Pending
     }
 }
-

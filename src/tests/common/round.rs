@@ -1,6 +1,4 @@
 use std::fmt::{self, Display, Formatter};
-
-use network::Message;
 use serde::{Deserialize, Serialize};
 
 #[derive(
@@ -23,17 +21,16 @@ impl std::ops::Sub for Round {
         self,
         rhs: Self,
     ) -> Self::Output {
-        Self { 0: self.0 - rhs.0 }
+        Self(self.0 - rhs.0)
     }
 }
 
 impl From<usize> for Round {
     fn from(num: usize) -> Self {
-        Self { 0: num }
+        Self(num)
     }
 }
 
-impl Message for Round {}
 impl crate::Round for Round {
-    const MIN: Self = Self { 0: 0 };
+    const MIN: Self = Self(0);
 }

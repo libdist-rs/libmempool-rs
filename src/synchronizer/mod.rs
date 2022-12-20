@@ -59,6 +59,7 @@ where
     Round: crate::Round,
     Storage: libstorage::Store,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         my_name: Id,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,

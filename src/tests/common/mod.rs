@@ -22,7 +22,7 @@ pub fn get_peers(
     let mut peers = FnvHashMap::default();
     for i in 0..num_nodes {
         peers.insert(
-            i.into(),
+            i,
             format!("127.0.0.1:{}", base_port + (i as u16))
                 .parse()
                 .unwrap(),

@@ -1,7 +1,7 @@
+pub use hybrid::*;
 pub use sized::*;
 pub use timed::*;
-pub use hybrid::*;
 
+mod hybrid;
 mod sized;
 mod timed;
-mod hybrid;

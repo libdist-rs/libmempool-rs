@@ -2,7 +2,7 @@ use futures::FutureExt;
 
 use crate::{
     sealer::Sized,
-    tests::common::{transform, Tx},
+    tests::common::Tx,
     Sealer,
 };
 use std::error::Error;
@@ -13,7 +13,7 @@ const SEAL_SIZE: usize = 6;
 #[tokio::test]
 async fn test_fifo() -> Result<(), Box<dyn Error>> {
     let mut sealer = Sized::<Tx>::new(SEAL_SIZE);
-    let test_txs = transform(vec![true, false, true, false, true, false]);
+    let test_txs = vec![true, false, true, false, true, false];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }
@@ -28,7 +28,7 @@ async fn test_fifo() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn test_correct_size() -> Result<(), Box<dyn Error>> {
     let mut sealer = Sized::<Tx>::new(SEAL_SIZE);
-    let test_txs = transform(vec![true, false, true, false, true, false]);
+    let test_txs = vec![true, false, true, false, true, false];
     let res = (&mut sealer).now_or_never();
 
     assert!(res.is_none(), "Sealer should not be ready when empty");
@@ -49,9 +49,9 @@ async fn test_correct_size() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn test_multiple_seals() -> Result<(), Box<dyn Error>> {
     let mut sealer = Sized::<Tx>::new(SEAL_SIZE);
-    let test_txs = transform(vec![true, false, true, false, true, false]);
-    let test_txs2 = transform(vec![true, true, true, false, true, false]);
-    let test_txs3 = transform(vec![true, false, false, false, true, false]);
+    let test_txs = vec![true, false, true, false, true, false];
+    let test_txs2 = vec![true, true, true, false, true, false];
+    let test_txs3 = vec![true, false, false, false, true, false];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }

@@ -41,7 +41,10 @@ where
 
     async fn run(&mut self) -> Result<()> {
         while let Some((msg, ack)) = self.ack_in.recv().await {
-            let val = self.count_map.entry(msg.clone()).or_insert(Vec::default());
+            let val = self.count_map
+                .entry(msg.clone())
+                .or_insert_with(Vec::default);
+
             val.push(ack);
 
             if val.len() == self.num_of_ids_to_wait_for {

@@ -43,16 +43,15 @@ async fn do_test_mempool(
     );
     let all_ids: Vec<Id> = mempool_peers.keys().cloned().collect();
 
-    let params = {
-        let mut p = Config::<Round>::default();
-        p.gc_depth = 2.into();
-        p
+    let params = Config::<Round> {
+        gc_depth: 2.into(),
+        ..Default::default()
     };
 
     let mut receivers = Vec::<UnboundedReceiver<Hash<Batch<Tx>>>>::new();
 
     for i in 0..num_nodes {
-        let my_name: Id = i.into();
+        let my_name: Id = i;
         let store = Storage::new(format!(".mempool_tests{}-{}.db", num_nodes, i).as_str())?;
         let mempool_sender = TcpSimpleSender::<Id, MempoolMsg<Id, Tx>, Acknowledgement>::with_peers(
             mempool_peers.clone(),
@@ -68,15 +67,15 @@ async fn do_test_mempool(
         Batcher::spawn(rx_batcher, tx_processor.clone(), Sized::new(2));
 
         let (my_mempool_addr, my_client_addr) = {
-            let mut mempool_addr = mempool_peers[&my_name].clone();
-            let mut client_addr = client_peers[&my_name].clone();
+            let mut mempool_addr = mempool_peers[&my_name];
+            let mut client_addr = client_peers[&my_name];
             mempool_addr.set_ip("0.0.0.0".parse()?);
             client_addr.set_ip("0.0.0.0".parse()?);
             (mempool_addr, client_addr)
         };
 
         Mempool::spawn(
-            my_name.clone(),
+            my_name,
             all_ids.clone(),
             params.clone(),
             store.clone(),
@@ -94,15 +93,15 @@ async fn do_test_mempool(
     }
 
     let mut client_sender = TcpSimpleSender::<Id, Tx, Acknowledgement>::with_peers(client_peers);
-    let test_tx = Tx::dummy();
+    let test_tx = crate::tests::dummy_tx();
 
     let start = Instant::now();
 
     for i in 0..num_nodes {
-        client_sender.send(i.into(), test_tx).await;
-        client_sender.send(i.into(), test_tx).await;
-        client_sender.send(i.into(), test_tx).await;
-        client_sender.send(i.into(), test_tx).await;
+        client_sender.send(i, test_tx).await;
+        client_sender.send(i, test_tx).await;
+        client_sender.send(i, test_tx).await;
+        client_sender.send(i, test_tx).await;
     }
 
     for mut receiver in receivers {

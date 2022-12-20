@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     sealer::Timed,
-    tests::common::{transform, Tx},
+    tests::common::Tx,
     Sealer,
 };
 
@@ -15,7 +15,7 @@ const SEAL_TIME: Duration = Duration::from_millis(50);
 #[tokio::test]
 async fn test_fifo() -> Result<(), Box<dyn Error>> {
     let mut sealer = Timed::<Tx>::new(SEAL_TIME);
-    let test_txs: Vec<Tx> = transform(vec![true, false, true, false, true, false]);
+    let test_txs: Vec<Tx> = vec![true, false, true, false, true, false];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }
@@ -31,7 +31,7 @@ async fn test_fifo() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn test_correct_timing() -> Result<(), Box<dyn Error>> {
     let mut sealer = Timed::<Tx>::new(SEAL_TIME);
-    let test_txs: Vec<Tx> = transform(vec![true, false, true, false, true, false]);
+    let test_txs: Vec<Tx> = vec![true, false, true, false, true, false];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }
@@ -48,9 +48,9 @@ async fn test_correct_timing() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn test_multiple_seals() -> Result<(), Box<dyn Error>> {
     let mut sealer = Timed::<Tx>::new(SEAL_TIME);
-    let test_txs = transform(vec![true, false, true, false, true, false]);
-    let test_txs2 = transform(vec![true, true, true, false, true, false]);
-    let test_txs3 = transform(vec![true, false, false, false, true, false]);
+    let test_txs = vec![true, false, true, false, true, false];
+    let test_txs2 = vec![true, true, true, false, true, false];
+    let test_txs3 = vec![true, false, false, false, true, false];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }

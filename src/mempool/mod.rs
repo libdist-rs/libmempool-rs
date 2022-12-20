@@ -34,6 +34,7 @@ where
     Storage: libstorage::Store,
     Tx: Transaction,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn spawn(
         my_name: Id,
         all_ids: Vec<Id>,

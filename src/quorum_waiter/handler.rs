@@ -5,7 +5,7 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 pub struct Message<MsgId> {
     batch: MsgId,
-    handlers: Vec<CancelHandler>,
+    handlers: Vec<CancelHandler<MsgId>>,
 }
 
 /// This struct serially waits for to obtain a quorum of acknowledgements before
@@ -20,7 +20,7 @@ impl<MsgId> HandlerWaiter<MsgId>
 where
     MsgId: Send + Sync + 'static + std::fmt::Debug,
 {
-    pub fn new(
+    pub fn spawn(
         num_of_ids_to_wait_for: usize,
         notify: UnboundedSender<MsgId>,
         rx: UnboundedReceiver<Message<MsgId>>,
@@ -41,7 +41,7 @@ where
 
     /// Helper function. It waits for a future to complete and then delivers a
     /// value.
-    async fn waiter(wait_for: CancelHandler) {
+    async fn waiter(wait_for: CancelHandler<MsgId>) {
         let _ = wait_for.await;
     }
 
