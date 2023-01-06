@@ -1,12 +1,22 @@
+use std::fmt::{Debug, Formatter, self};
+
 use libcrypto::hash::Hash;
 use serde::{Deserialize, Serialize};
 
 /// A short-hand to represent Hash<Batch<Tx>>
 pub type BatchHash<Tx> = Hash<Batch<Tx>>;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Serialize, Deserialize, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Batch<Tx> {
     pub payload: Vec<Tx>,
+}
+
+impl<Tx> Debug for Batch<Tx> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Batch")
+            .field("payload length", &self.payload.len())
+            .finish()
+    }
 }
 
 impl<Tx> From<Vec<Tx>> for Batch<Tx> {
