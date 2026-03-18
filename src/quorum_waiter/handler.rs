@@ -1,11 +1,11 @@
 use anyhow::Result;
 use futures::{stream::FuturesUnordered, StreamExt};
-use network::plaintcp::CancelHandler;
+use tcp_reliable_sender::CancelHandler;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 pub struct Message<MsgId> {
     batch: MsgId,
-    handlers: Vec<CancelHandler<MsgId>>,
+    handlers: Vec<CancelHandler>,
 }
 
 /// This struct serially waits for to obtain a quorum of acknowledgements before
@@ -41,7 +41,7 @@ where
 
     /// Helper function. It waits for a future to complete and then delivers a
     /// value.
-    async fn waiter(wait_for: CancelHandler<MsgId>) {
+    async fn waiter(wait_for: CancelHandler) {
         let _ = wait_for.await;
     }
 

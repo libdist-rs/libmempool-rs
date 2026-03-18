@@ -2,12 +2,13 @@ use crate::{
     Batch, BatchHash, Config, ConsensusMempoolMsg, Helper, MempoolHandler, MempoolMsg, Processor,
     Synchronizer, Transaction, TxReceiveHandler,
 };
+use futures::StreamExt;
 use libcrypto::hash::Hash;
-use network::{
-    plaintcp::{TcpReceiver, TcpSimpleSender},
-    Acknowledgement, Identifier,
-};
+use serde::{de::DeserializeOwned, Serialize};
+use std::fmt::Debug;
 use std::net::SocketAddr;
+use tcp_receiver::TcpReceiver;
+use tcp_sender::TcpSimpleSender;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct Mempool<Id, Round, Storage, Tx> {
@@ -20,7 +21,7 @@ pub struct Mempool<Id, Round, Storage, Tx> {
     /// The DB implementation to handle new transactions
     store: Storage,
     /// The networking object to send mempool messages to other mempools
-    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>>,
     /// Address where this mempool should listen to requests from other mempools
     mempool_addr: SocketAddr,
     /// Address where this mempool should listen to requests from clients
@@ -29,7 +30,7 @@ pub struct Mempool<Id, Round, Storage, Tx> {
 
 impl<Id, Round, Storage, Tx> Mempool<Id, Round, Storage, Tx>
 where
-    Id: Identifier,
+    Id: Debug + Clone + Eq + std::hash::Hash + Send + Sync + Serialize + DeserializeOwned + 'static,
     Round: crate::Round,
     Storage: libstorage::Store,
     Tx: Transaction,
@@ -40,7 +41,7 @@ where
         all_ids: Vec<Id>,
         params: Config<Round>,
         store: Storage,
-        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>>,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,
         // This channel is used to output the obtained transactions along with its size to whoever
         // is managing the batching process
@@ -109,7 +110,18 @@ where
         tx_consensus: UnboundedSender<Hash<Batch<Tx>>>,
     ) {
         // Handle transactions sent by the client
-        TcpReceiver::spawn(self.client_addr, TxReceiveHandler::new(tx_batcher));
+        // New API: TcpReceiver is a stream, poll it and forward to handler
+        let mut client_receiver = TcpReceiver::<Tx>::spawn(self.client_addr);
+        let tx_handler = TxReceiveHandler::new(tx_batcher);
+        tokio::spawn(async move {
+            while let Some(result) = client_receiver.next().await {
+                match result {
+                    Ok(msg) => tx_handler.dispatch(msg),
+                    Err(_e) => log::error!("Client receiver deserialization error"),
+                }
+            }
+            log::warn!("Client receiver stream ended");
+        });
 
         // The above will be forwarded to the batcher
         // Once the batcher has a batch ready, it will send it to the processor
@@ -129,14 +141,22 @@ where
         let (tx_helper, rx_helper) = unbounded_channel();
 
         Helper::<Id, Storage, Tx>::spawn(
-            TcpSimpleSender::with_peers(self.mempool_sender.get_peers()),
+            TcpSimpleSender::with_peers(self.mempool_sender.get_peers().clone()),
             rx_helper,
             self.store.clone(),
         );
 
-        TcpReceiver::spawn(
-            self.mempool_addr,
-            MempoolHandler::new(tx_helper, tx_processor),
-        );
+        // New API: TcpReceiver is a stream, poll it and forward to handler
+        let mut mempool_receiver = TcpReceiver::<MempoolMsg<Id, Tx>>::spawn(self.mempool_addr);
+        let mempool_handler = MempoolHandler::new(tx_helper, tx_processor);
+        tokio::spawn(async move {
+            while let Some(result) = mempool_receiver.next().await {
+                match result {
+                    Ok(msg) => mempool_handler.dispatch(msg),
+                    Err(e) => log::error!("Mempool receiver deserialization error: {:?}", e),
+                }
+            }
+            log::warn!("Mempool receiver stream ended");
+        });
     }
 }

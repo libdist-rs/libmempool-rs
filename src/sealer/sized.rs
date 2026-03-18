@@ -1,4 +1,4 @@
-use crate::{Sealer, Transaction};
+use crate::Sealer;
 use std::{
     future::Future,
     pin::Pin,
@@ -25,7 +25,7 @@ impl<Tx> Sized<Tx> {
 
 impl<Tx> Sealer<Tx> for Sized<Tx>
 where
-    Tx: Transaction,
+    Tx: Send + Sync + Clone + 'static,
 {
     /// Resets the sealer with current size as 0 and returns all the
     /// transactions
@@ -48,7 +48,7 @@ impl<Tx> Unpin for Sized<Tx> {}
 
 impl<Tx> Future for Sized<Tx>
 where
-    Tx: Transaction,
+    Tx: Send + Sync + Clone + 'static,
 {
     type Output = Vec<Tx>;
 

@@ -1,9 +1,13 @@
 use crate::{Batch, BatchHash, ConsensusMempoolMsg, MempoolMsg, Transaction};
+use bytes::Bytes;
 use fnv::FnvHashMap;
 use futures::{stream::FuturesUnordered, StreamExt};
 use libcrypto::hash::Hash;
-use network::{plaintcp::TcpSimpleSender, Acknowledgement, Identifier, NetSender};
+use rand::seq::SliceRandom;
+use serde::Serialize;
+use std::fmt::Debug;
 use std::time::Duration;
+use tcp_sender::TcpSimpleSender;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
     time::{sleep, Instant},
@@ -12,7 +16,6 @@ pub use waiter::*;
 
 mod waiter;
 
-#[derive(Debug)]
 pub struct Synchronizer<Id, Round, Tx, Storage> {
     /// Id of this node
     my_name: Id,
@@ -33,7 +36,7 @@ pub struct Synchronizer<Id, Round, Tx, Storage> {
     pending: FnvHashMap<BatchHash<Tx>, (Round, UnboundedSender<()>, Instant)>,
 
     /// Used to send sync messages to the network
-    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+    mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>>,
 
     /// Storage to clean
     storage: Storage,
@@ -55,7 +58,7 @@ pub struct Synchronizer<Id, Round, Tx, Storage> {
 impl<Id, Round, Tx, Storage> Synchronizer<Id, Round, Tx, Storage>
 where
     Tx: Transaction,
-    Id: Identifier,
+    Id: Debug + Clone + Eq + std::hash::Hash + Send + Sync + Serialize + 'static,
     Round: crate::Round,
     Storage: libstorage::Store,
 {
@@ -64,7 +67,7 @@ where
         my_name: Id,
         rx_consensus: UnboundedReceiver<ConsensusMempoolMsg<Id, Round, Tx>>,
         gc_depth: Round,
-        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>, Acknowledgement>,
+        mempool_sender: TcpSimpleSender<Id, MempoolMsg<Id, Tx>>,
         storage: Storage,
         wait_time: Duration,
         all_ids: Vec<Id>,
@@ -122,7 +125,10 @@ where
                         // Send sync request to a single node. If this fails, we will send it
                         // to other nodes when a timer times out.
                         let message = MempoolMsg::<Id, Tx>::RequestBatch(self.my_name.clone(), missing);
-                        self.mempool_sender.send(source, message).await;
+                        let serialized = Bytes::from(bincode::serialize(&message).unwrap());
+                        if let Err(e) = self.mempool_sender.send(source, serialized).await {
+                            log::warn!("Synchronizer send error: {}", e);
+                        }
                     }
 
                     ConsensusMempoolMsg::End(round) => {
@@ -173,9 +179,23 @@ where
                     }
                     if !retry.is_empty() {
                         let message = MempoolMsg::<Id, Tx>::RequestBatch(self.my_name.clone(), retry);
-                        self.mempool_sender
-                            .randcast(message, self.all_ids.clone(), self.sync_retry_nodes)
-                            .await;
+                        let serialized = Bytes::from(bincode::serialize(&message).unwrap());
+
+                        // Select random peers (replacing the old randcast)
+                        let selected: Vec<Id> = {
+                            let mut rng = rand::thread_rng();
+                            let mut candidates = self.all_ids.clone();
+                            candidates.shuffle(&mut rng);
+                            candidates.into_iter()
+                                .take(self.sync_retry_nodes)
+                                .collect()
+                        };
+
+                        for peer in selected {
+                            if let Err(e) = self.mempool_sender.send(peer, serialized.clone()).await {
+                                log::warn!("Synchronizer retry send error: {}", e);
+                            }
+                        }
                     }
 
                     // Reschedule the timer.

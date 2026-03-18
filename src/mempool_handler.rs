@@ -1,7 +1,5 @@
 use crate::{Batch, BatchHash, MempoolMsg, Transaction};
-use async_trait::async_trait;
-use futures::SinkExt;
-use network::{Acknowledgement, Handler, Identifier};
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -12,30 +10,11 @@ pub struct MempoolHandler<Id, Tx> {
     _x: PhantomData<Id>,
 }
 
-#[async_trait]
-impl<Id, Tx> Handler<Acknowledgement, MempoolMsg<Id, Tx>> for MempoolHandler<Id, Tx>
+impl<Id, Tx> MempoolHandler<Id, Tx>
 where
     Tx: Transaction,
-    Id: Identifier,
+    Id: Debug + Clone + Send + Sync + 'static,
 {
-    async fn dispatch(
-        &self,
-        msg: MempoolMsg<Id, Tx>,
-        writer: &mut network::Writer<Acknowledgement>,
-    ) {
-        match msg {
-            MempoolMsg::Batch(batch) => {
-                let _ = self.tx_processor.send(batch);
-            }
-            MempoolMsg::RequestBatch(source, hashes) => {
-                let _ = self.tx_helper.send((source, hashes));
-            }
-        }
-        let _ = writer.send(Acknowledgement::Pong).await;
-    }
-}
-
-impl<Id, Tx> MempoolHandler<Id, Tx> {
     pub fn new(
         tx_helper: UnboundedSender<(Id, Vec<BatchHash<Tx>>)>,
         tx_processor: UnboundedSender<Batch<Tx>>,
@@ -44,6 +23,18 @@ impl<Id, Tx> MempoolHandler<Id, Tx> {
             tx_helper,
             tx_processor,
             _x: PhantomData,
+        }
+    }
+
+    /// Dispatch a received mempool message to the appropriate channel
+    pub fn dispatch(&self, msg: MempoolMsg<Id, Tx>) {
+        match msg {
+            MempoolMsg::Batch(batch) => {
+                let _ = self.tx_processor.send(batch);
+            }
+            MempoolMsg::RequestBatch(source, hashes) => {
+                let _ = self.tx_helper.send((source, hashes));
+            }
         }
     }
 }

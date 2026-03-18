@@ -2,9 +2,10 @@ use super::{get_peers, Id, Round, Tx};
 use crate::batcher::Batcher;
 use crate::Batch;
 use crate::{sealer::Sized, Config, Mempool, MempoolMsg};
+use bytes::Bytes;
 use libcrypto::hash::Hash;
 use libstorage::rocksdb::Storage;
-use network::{plaintcp::TcpSimpleSender, Acknowledgement, NetSender};
+use tcp_sender::TcpSimpleSender;
 use std::time::Duration;
 use tokio::{
     sync::mpsc::{unbounded_channel, UnboundedReceiver},
@@ -53,7 +54,7 @@ async fn do_test_mempool(
     for i in 0..num_nodes {
         let my_name: Id = i;
         let store = Storage::new(format!(".mempool_tests{}-{}.db", num_nodes, i).as_str())?;
-        let mempool_sender = TcpSimpleSender::<Id, MempoolMsg<Id, Tx>, Acknowledgement>::with_peers(
+        let mempool_sender = TcpSimpleSender::<Id, MempoolMsg<Id, Tx>>::with_peers(
             mempool_peers.clone(),
         );
 
@@ -92,16 +93,17 @@ async fn do_test_mempool(
         receivers.push(rx_in_consensus);
     }
 
-    let mut client_sender = TcpSimpleSender::<Id, Tx, Acknowledgement>::with_peers(client_peers);
+    let mut client_sender = TcpSimpleSender::<Id, Tx>::with_peers(client_peers);
     let test_tx = crate::tests::dummy_tx();
 
     let start = Instant::now();
 
     for i in 0..num_nodes {
-        client_sender.send(i, test_tx).await;
-        client_sender.send(i, test_tx).await;
-        client_sender.send(i, test_tx).await;
-        client_sender.send(i, test_tx).await;
+        let serialized = Bytes::from(bincode::serialize(&test_tx).unwrap());
+        let _ = client_sender.send(i, serialized.clone()).await;
+        let _ = client_sender.send(i, serialized.clone()).await;
+        let _ = client_sender.send(i, serialized.clone()).await;
+        let _ = client_sender.send(i, serialized.clone()).await;
     }
 
     for mut receiver in receivers {

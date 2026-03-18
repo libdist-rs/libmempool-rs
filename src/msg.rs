@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Formatter, self};
 
 use libcrypto::hash::Hash;
-use serde::{Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 /// A short-hand to represent Hash<Batch<Tx>>
 pub type BatchHash<Tx> = Hash<Batch<Tx>>;
@@ -30,6 +30,18 @@ pub enum MempoolMsg<Id, Tx> {
     RequestBatch(Id, Vec<BatchHash<Tx>>),
     /// This is sent by the primary or by a helper
     Batch(Batch<Tx>),
+}
+
+impl<Id, Tx> net_common::Message for MempoolMsg<Id, Tx>
+where
+    Id: Serialize + DeserializeOwned + Debug + Send + Sync + Clone + 'static,
+    Tx: Serialize + DeserializeOwned + Debug + Send + Sync + Clone + 'static,
+{
+    type DeserializationError = Box<bincode::ErrorKind>;
+
+    fn from_bytes(bytes: &[u8]) -> Result<Self, Self::DeserializationError> {
+        bincode::deserialize(bytes)
+    }
 }
 
 pub enum ConsensusMempoolMsg<Id, Round, Tx> {

@@ -1,6 +1,6 @@
 [package]
 name = "libmempool-rs"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -8,22 +8,27 @@ edition = "2021"
 [dependencies]
 log = "0"
 libcrypto = { git = "https://github.com/libdist-rs/libcrypto-rs.git" }
-network = { git = "https://github.com/libdist-rs/libnet-rs.git" }
+tcp-sender = { git = "https://github.com/libdist-rs/libnet-rs.git" }
+tcp-reliable-sender = { git = "https://github.com/libdist-rs/libnet-rs.git" }
+tcp-receiver = { git = "https://github.com/libdist-rs/libnet-rs.git" }
+net-common = { package = "common", git = "https://github.com/libdist-rs/libnet-rs.git" }
 libstorage = { package = "libstorage-rs", git = "https://github.com/libdist-rs/libstorage-rs.git" }
 serde = {version = "1", features = [ "derive" ] }
 bincode = "1"
+bytes = "1"
 anyhow = "1"
 futures = "0"
 fnv = "1"
-async-trait = "0"
+rand = "0.8"
 
 [dependencies.tokio]
-version = "1"
+version = "1.29"
 features = [
     "rt",
     "macros",
     "time",
     "sync",
+    "net",
 ]
 
 [dev-dependencies]

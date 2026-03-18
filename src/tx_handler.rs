@@ -1,6 +1,3 @@
-use async_trait::async_trait;
-use futures::SinkExt;
-use network::{Acknowledgement, Handler, Message};
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Clone)]
@@ -13,19 +10,12 @@ impl<Tx> TxReceiveHandler<Tx> {
     pub fn new(tx_batcher: UnboundedSender<(Tx, usize)>) -> Self {
         Self { tx_batcher }
     }
-}
 
-#[async_trait]
-impl<Tx> Handler<Acknowledgement, Tx> for TxReceiveHandler<Tx>
-where
-    Tx: Message,
-{
-    async fn dispatch(
-        &self,
-        msg: Tx,
-        writer: &mut network::Writer<Acknowledgement>,
-    ) {
-        let _ = writer.send(Acknowledgement::Pong).await;
+    /// Dispatch a received transaction to the batcher channel
+    pub fn dispatch(&self, msg: Tx)
+    where
+        Tx: serde::Serialize,
+    {
         let size = bincode::serialized_size(&msg).unwrap() as usize;
         if let Err(e) = self.tx_batcher.send((msg, size)) {
             log::error!("Tx Handler error: {}", e);

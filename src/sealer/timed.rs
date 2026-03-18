@@ -1,4 +1,4 @@
-use crate::{Sealer, Transaction};
+use crate::Sealer;
 use std::{
     future::Future,
     pin::Pin,
@@ -29,7 +29,7 @@ impl<Tx> Timed<Tx> {
 
 impl<Tx> Sealer<Tx> for Timed<Tx>
 where
-    Tx: Transaction,
+    Tx: Send + Sync + Clone + 'static,
 {
     /// Resets the timer and returns all the transactions
     fn seal(&mut self) -> Vec<Tx> {
@@ -50,7 +50,7 @@ impl<Tx> Unpin for Timed<Tx> {}
 
 impl<Tx> Future for Timed<Tx>
 where
-    Tx: Transaction,
+    Tx: Send + Sync + Clone + 'static,
 {
     type Output = Vec<Tx>;
 

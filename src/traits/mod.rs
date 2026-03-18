@@ -1,12 +1,16 @@
 use futures::Future;
-use network::Message;
+use serde::{de::DeserializeOwned, Serialize};
+use std::fmt::Debug;
 
-pub trait Transaction: Message {}
+pub trait Transaction:
+    Serialize + DeserializeOwned + Debug + Send + Sync + Clone + 'static + net_common::Message
+{
+}
 
-impl<T> Transaction for T
-where
-    T: Message,
-{}
+impl<T> Transaction for T where
+    T: Serialize + DeserializeOwned + Debug + Send + Sync + Clone + 'static + net_common::Message
+{
+}
 
 pub trait Round:
     Send

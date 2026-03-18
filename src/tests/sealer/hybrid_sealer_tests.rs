@@ -1,4 +1,5 @@
 use crate::{sealer::HybridSealer, Sealer};
+use crate::tests::common::Tx;
 use std::{error::Error, time::Duration};
 use tokio::time::Instant;
 
@@ -7,10 +8,10 @@ const SEAL_SIZE: usize = 6;
 
 #[tokio::test]
 async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>> {
-    let mut sealer = HybridSealer::<crate::tests::common::Tx>::new(SEAL_TIME, SEAL_SIZE);
+    let mut sealer = HybridSealer::<Tx>::new(SEAL_TIME, SEAL_SIZE);
     let start = Instant::now();
     sealer.reset();
-    let test_txs = vec![true, false, true, false, true];
+    let test_txs = vec![Tx(true), Tx(false), Tx(true), Tx(false), Tx(true)];
     // First, check for the timeout case
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
@@ -22,7 +23,7 @@ async fn test_hybrid_fifo() -> Result<(), Box<dyn Error>> {
 
     // Next, check for the size case
     sealer.reset();
-    let test_txs = vec![true, false, true, false, true, false];
+    let test_txs = vec![Tx(true), Tx(false), Tx(true), Tx(false), Tx(true), Tx(false)];
     for test_tx in &test_txs {
         sealer.update(*test_tx, 1);
     }
